@@ -89,4 +89,20 @@ app.post('/importar-lista', (req, res) => {
     res.json({ mensagem: "Lista importada com sucesso!" });
 });
 
+// Rota para eliminar um ingresso específico
+app.delete('/eliminar-ingresso/:id', (req, res) => {
+    const { id } = req.params;
+    const dados = JSON.parse(fs.readFileSync('ingressos.json', 'utf8'));
+    
+    // Filtramos a lista: guardamos apenas os que NÃO têm o ID informado
+    const novaLista = dados.filter(ingresso => ingresso.id !== id);
+
+    if (dados.length === novaLista.length) {
+        return res.status(404).json({ mensagem: "Ingresso não encontrado!" });
+    }
+
+    fs.writeFileSync('ingressos.json', JSON.stringify(novaLista, null, 2));
+    res.json({ mensagem: "Ingresso eliminado com sucesso!" });
+});
+
 app.listen(PORT, () => console.log(`Servidor Online na porta ${PORT}`));
