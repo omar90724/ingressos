@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Portaria - Check-in</title>
+    <style>
+        /* Reutilizando os teus estilos para manter a identidade */
+        :root { --primary: #4a90e2; --success: #27ae60; --dark: #2c3e50; --light: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--light); padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        .stats-grid { display: flex; gap: 15px; margin-bottom: 20px; }
+        .stat-card { flex: 1; padding: 20px; border-radius: 12px; text-align: center; background: white; border: 1px solid #eee; }
+        .stat-card h2 { margin: 10px 0 0 0; font-size: 2rem; }
+        
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; box-sizing: border-box; font-size: 1rem; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .btn-checkin { background: var(--success); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-checkin:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Painel de Portaria</h1>
+
+        <div class="stats-grid">
+            <div class="stat-card"><span>Total</span><h2 id="total">0</h2></div>
+            <div class="stat-card"><span>Presentes</span><h2 id="checkin" style="color: var(--success)">0</h2></div>
+            <div class="stat-card"><span>Faltam</span><h2 id="ausentes" style="color: #e67e22">0</h2></div>
+        </div>
+
+        <div style="background: #eee; border-radius: 10px; height: 15px; overflow: hidden; margin-bottom: 25px;">
+            <div id="barraProgresso" style="background: var(--success); width: 0%; height: 100%; transition: 0.5s;"></div>
+        </div>
+
+        <input type="text" id="buscaNome" placeholder="🔍 Digite o nome para procurar..." onkeyup="filtrarTabela()">
+
+        <table id="tabela">
+            <thead>
+                <tr><th>Nome</th><th>Status</th><th>Ação</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function atualizar() {
+            try {
+                const res = await fetch('/listar-ingressos');
+                const dados = await res.json();
+                const corpo = document.querySelector('#tabela tbody');
+                corpo.innerHTML = "";
+                
+                let contCheckin = 0;
+                const termoBusca = document.getElementById('buscaNome').value.toLowerCase();
+
+                dados.forEach(i => {
+                    if(i.utilizado) contCheckin++;
+                    
+                    // Só mostra na tabela se coincidir com a busca (ou se busca vazia)
+                    if(i.nome.toLowerCase().includes(termoBusca)) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${i.nome}</strong><br><small style="color:grey">${i.id}</small></td>
+                            <td style="color:${i.utilizado ? 'green':'orange'}">
+                                ${i.utilizado ? '✅ Confirmado' : '⏳ Pendente'}
+                            </td>
+                            <td>
+                                <button class="btn-checkin" 
+                                    ${i.utilizado ? 'disabled' : ''} 
+                                    onclick="validarManual('${i.id}')">
+                                    ${i.utilizado ? 'Já entrou' : 'Confirmar'}
+                                </button>
+                            </td>
+                        `;
+                        corpo.appendChild(tr);
+                    }
+                });
+
+                // Atualiza os Cards
+                document.getElementById('total').innerText = dados.length;
+                document.getElementById('checkin').innerText = contCheckin;
+                document.getElementById('ausentes').innerText = dados.length - contCheckin;
+                document.getElementById('barraProgresso').style.width = (contCheckin / dados.length * 100) + "%";
+
+            } catch(e) { console.error("Erro ao atualizar:", e); }
+        }
+
+        async function validarManual(id) {
+            let token = localStorage.getItem('staff_token');
+            if (!token) {
+                token = prompt("Chave de Acesso:");
+                if (token) localStorage.setItem('staff_token', token);
+                else return;
+            }
+
+            const res = await fetch('/validar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, token })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                atualizar();
+            } else {
+                alert(data.mensagem);
+            }
+        }
+
+        function filtrarTabela() { atualizar(); }
+
+        window.onload = atualizar;
+        setInterval(atualizar, 5000); // Atualiza sozinho a cada 5 segundos
+    </script>
+</body>
+</html>
