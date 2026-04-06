@@ -278,6 +278,21 @@
                             }
                         </td>
                     `;
+                    tr.innerHTML = `
+                        <td><code>${i.id}</code></td>
+                        <td>${i.nome}</td>
+                        <td style="color:${i.utilizado ? 'green':'orange'}">
+                            <strong>${i.utilizado ? 'Presente':'Pendente'}</strong>
+                        </td>
+                        <td>
+                            <button class="btn-print" onclick="imprimirUnico('${i.nome}','${i.id}')">🖨️</button>
+                            ${!i.utilizado ? 
+                                `<button class="btn-main" style="background:#27ae60; margin-left:5px;" onclick="validarManualAdmin('${i.id}')">✅</button>` 
+                                : `<button disabled style="background:#ccc; margin-left:5px; border:none; color:white;">✔</button>`
+                            }
+                            <button class="btn-danger" style="margin-left:5px;" onclick="eliminarIngresso('${i.id}', '${i.nome}')">🗑️</button>
+                        </td>
+                    `;
                     corpo.appendChild(tr);
                 });
 
@@ -295,6 +310,26 @@
 
             } catch(e) { 
                 console.error("Erro ao atualizar indicadores:", e); 
+            }
+        }
+
+        async function eliminarIngresso(id, nome) {
+            // Pedimos confirmação para evitar cliques acidentais
+            if (confirm(`Tens a certeza que desejas eliminar o ingresso de: ${nome}?`)) {
+                try {
+                    const res = await fetch(`/eliminar-ingresso/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (res.ok) {
+                        alert("Ingresso removido!");
+                        atualizar(); // Atualiza a tabela e os contadores automaticamente
+                    } else {
+                        alert("Erro ao eliminar o ingresso.");
+                    }
+                } catch (e) {
+                    alert("Erro de ligação ao servidor.");
+                }
             }
         }
 
