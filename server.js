@@ -5,7 +5,7 @@ app.use((req, res, next) => {
     res.setHeader('ngrok-skip-browser-warning', 'true');
     next();
 });
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // DEFINA A SUA CHAVE DE SEGURANÇA AQUI
 const CHAVE_MESTRA = "dedicacao2026*"; 
