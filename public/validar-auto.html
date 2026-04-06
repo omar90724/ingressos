@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in Staff</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f0f2f5; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 350px; margin: auto; }
+        .sucesso { color: #27ae60; } .erro { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="card" id="status">A validar...</div>
+
+    <script>
+        const somSucesso = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+        const somErro = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3');
+
+        async function validar() {
+            let token = localStorage.getItem('staff_token');
+            if (!token) {
+                token = prompt("Digite a Chave de Acesso do Staff:");
+                if (token) localStorage.setItem('staff_token', token);
+            }
+
+            const id = new URLSearchParams(window.location.search).get('id');
+            const display = document.getElementById('status');
+
+            try {
+                const res = await fetch('/validar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, token })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    somSucesso.play();
+                    display.innerHTML = `<h1 class="sucesso">✅ OK</h1><p>${data.mensagem}</p>`;
+                } else if (res.status === 401) {
+                    localStorage.removeItem('staff_token');
+                    alert("Chave incorreta!");
+                    location.reload();
+                } else {
+                    somErro.play();
+                    display.innerHTML = `<h1 class="erro">❌ NEGADO</h1><p>${data.mensagem}</p>`;
+                }
+            } catch (e) { display.innerText = "Erro de conexão."; }
+        }
+        window.onload = validar;
+    </script>
+</body>
+</html>

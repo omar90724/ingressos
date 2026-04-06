@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador de Ingressos - Check-in</title>
+    <style>
+        :root { 
+            --primary: #4a90e2; 
+            --success: #27ae60; 
+            --danger: #e74c3c; 
+            --dark: #2c3e50; 
+            --light: #f4f7f6; 
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--light); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+        }
+
+        h1 { color: var(--dark); margin-bottom: 10px; font-size: 1.5rem; }
+        p { color: #666; margin-bottom: 30px; }
+
+        .input-group { margin-bottom: 20px; }
+
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 6px; 
+            font-size: 1rem; 
+            box-sizing: border-box; 
+            text-align: center;
+            text-transform: uppercase;
+            transition: border-color 0.3s;
+        }
+
+        input:focus { border-color: var(--primary); outline: none; }
+
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: background 0.3s;
+        }
+
+        button:hover { background: #357abd; }
+
+        #resultado { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            display: none; 
+        }
+
+        .msg-sucesso { background: #e8f5e9; color: var(--success); display: block !important; }
+        .msg-erro { background: #ffebee; color: var(--danger); display: block !important; }
+
+        .footer-link { margin-top: 20px; display: block; color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Check-in Manual</h1>
+    <p>Introduza o código do ingresso abaixo para validar a entrada.</p>
+
+    <div class="input-group">
+        <input type="text" id="ticketId" placeholder="EX: ABC-12345" autocomplete="off">
+    </div>
+
+    <button onclick="validarIngresso()">Validar Entrada</button>
+    
+    <div id="resultado"></div>
+</div>
+
+<script>
+    // Carregar sons para feedback auditivo também no manual
+    const somSucesso = new Audio('https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3');
+    const somErro = new Audio('https://assets.mixkit.co/active_storage/sfx/948/948-preview.mp3');
+
+    async function validarIngresso() {
+        const idInput = document.getElementById('ticketId');
+        const resElement = document.getElementById('resultado');
+        const id = idInput.value.trim().toUpperCase();
+
+        if (!id) return;
+
+        // 1. Busca a senha salva ou pede ao staff
+        let token = localStorage.getItem('staff_token');
+        if (!token) {
+            token = prompt("Digite a Chave de Acesso do Staff para validar manualmente:");
+            if (token) localStorage.setItem('staff_token', token);
+            else return; // Cancela se não digitar a senha
+        }
+
+        try {
+            const resposta = await fetch('/validar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id: id,
+                    token: token // Envia a senha para o servidor
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                somSucesso.play();
+                resElement.innerText = dados.mensagem;
+                resElement.className = "msg-sucesso";
+                idInput.value = ""; // Limpa para o próximo
+            } else if (resposta.status === 401) {
+                // Se a senha estiver errada, limpa e pede de novo
+                localStorage.removeItem('staff_token');
+                alert("Senha de Staff incorreta!");
+                location.reload();
+            } else {
+                somErro.play();
+                resElement.innerText = dados.mensagem;
+                resElement.className = "msg-erro";
+            }
+        } catch (erro) {
+            resElement.innerText = "Erro ao conectar com o servidor.";
+            resElement.className = "msg-erro";
+        }
+    }
+
+    // Permitir validar ao pressionar "Enter"
+    document.getElementById('ticketId').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            validarIngresso();
+        }
+    });
+</script>
+
+</body>
+</html>
