@@ -33,9 +33,17 @@ app.post('/criar-ingresso', (req, res) => {
 app.post('/gerar-lote', (req, res) => {
     const { prefixo, quantidade } = req.body;
     const dados = JSON.parse(fs.readFileSync('ingressos.json', 'utf8'));
+    
     for (let i = 0; i < parseInt(quantidade); i++) {
-        dados.push({ id: `${prefixo}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`, nome: `${prefixo} #${i + 1}`, utilizado: false });
+        dados.push({ 
+            // O prefixo entra aqui no ID
+            id: `${prefixo}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`, 
+            // O nome fica limpo, apenas com o número da sequência
+            nome: `Convidado #${i + 1}`, 
+            utilizado: false 
+        });
     }
+    
     fs.writeFileSync('ingressos.json', JSON.stringify(dados, null, 2));
     res.json({ mensagem: "Lote gerado!" });
 });
@@ -65,21 +73,23 @@ app.post('/limpar-evento', (req, res) => {
     res.json({ mensagem: "Resetado" });
 });
 
-// Rota para importar lista de nomes com prefixo opcional
+// Rota para importar lista de nomes com prefixo no ID
 app.post('/importar-lista', (req, res) => {
-    const { nomes, prefixo } = req.body; // Agora recebe também o prefixo
+    const { nomes, prefixo } = req.body; 
     if (!Array.isArray(nomes)) return res.status(400).send("Lista inválida");
 
     const dados = JSON.parse(fs.readFileSync('ingressos.json', 'utf8'));
     
     nomes.forEach(nome => {
         if(nome.trim()) {
-            // Se houver prefixo, concatena: "Prefixo - Nome". Se não, apenas "Nome".
-            const nomeFinal = prefixo ? `${prefixo} - ${nome.trim()}` : nome.trim();
+            // Definimos o ID usando o prefixo enviado (ou 'I' como padrão se não houver prefixo)
+            const prefixoID = prefixo ? prefixo.toUpperCase() : 'I';
             
             dados.push({
-                id: `I${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-                nome: nomeFinal,
+                // O prefixo agora vai no ID
+                id: `${prefixoID}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+                // O nome fica limpo, apenas com o que foi enviado na lista
+                nome: nome.trim(),
                 utilizado: false
             });
         }
