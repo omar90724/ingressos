@@ -5,6 +5,7 @@ const { createCanvas, loadImage } = require('canvas');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
+const JSZip = require('jszip');
 
 app.use((req, res, next) => {
     res.setHeader('ngrok-skip-browser-warning', 'true');
@@ -17,6 +18,24 @@ const CHAVE_MESTRA = "dedicacao2026*";
 
 app.use(express.json());
 app.use(express.static('public'));
+
+app.get('/descarregar-todos', async (req, res) => {
+    const zip = new JSZip();
+    const pasta = path.join(__dirname, 'public', 'convites_pdf');
+
+    if (!fs.existsSync(pasta)) return res.status(404).send("Gere os PDFs primeiro!");
+
+    const ficheiros = fs.readdirSync(pasta);
+    ficheiros.forEach(nome => {
+        const conteudo = fs.readFileSync(path.join(pasta, nome));
+        zip.file(nome, conteudo);
+    });
+
+    const buffer = await zip.generateAsync({ type: "nodebuffer" });
+    res.set('Content-Type', 'application/zip');
+    res.set('Content-Disposition', 'attachment; filename=todos_os_convites.zip');
+    res.send(buffer);
+});
 
 app.post('/gerar-pdfs', async (req, res) => {
     try {
