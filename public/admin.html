@@ -125,6 +125,7 @@
         </div>
 
         <button class="btn-print" onclick="imprimirTodos()">🖨️ Imprimir Todos</button>
+        <button style="background: #c0392b; color: white;" onclick="gerarPDFs()">📄 Gerar PDFs Individuais</button>
         <button class="btn-danger" style="float:right" onclick="reset()">Resetar Dados</button>
 
         <table id="tabela">
@@ -222,6 +223,13 @@
             
             // Aguarda um curto tempo para renderizar as imagens antes de abrir a janela de impressão
             setTimeout(() => window.print(), 1000);
+        }
+        
+        async function gerarPDFs() {
+            if (!confirm("Deseja gerar os convites em formato PDF?")) return;
+            const res = await fetch('/gerar-pdfs', { method: 'POST' });
+            const data = await res.json();
+            alert(data.mensagem);
         }
 
         function imprimirUnico(nome, id) {
