@@ -625,7 +625,7 @@
         async function reset() { if(confirm("Limpar?")) { await fetch('/limpar-evento', {method:'POST'}); atualizar(); } }
 
         window.onload = () => { load(); atualizar(); };
-        //setInterval(atualizar, 5000);
+        setInterval(atualizar, 5000);
     </script>
 </body>
 </html>
