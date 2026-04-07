@@ -130,16 +130,6 @@
     "utilizado": false
   },
   {
-    "id": "CTL-YNTUC",
-    "nome": "Paulo Barreto",
-    "utilizado": false
-  },
-  {
-    "id": "CTL-C3NGE",
-    "nome": "Damiana F. Barreto",
-    "utilizado": false
-  },
-  {
     "id": "CTL-4VD01",
     "nome": "Giselma Oliveira",
     "utilizado": false
@@ -937,6 +927,11 @@
   {
     "id": "LST-CNV-BZFRB",
     "nome": "Nicole Penz (Orador)",
+    "utilizado": false
+  },
+  {
+    "id": "CTL-MTDMY",
+    "nome": "Marilene Rodrigues",
     "utilizado": false
   }
 ]

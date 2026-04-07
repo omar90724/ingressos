@@ -1,6 +1,11 @@
 const express = require('express');
 const fs = require('fs');
 const app = express();
+const { createCanvas, loadImage } = require('canvas');
+const path = require('path');
+const PDFDocument = require('pdfkit');
+const QRCode = require('qrcode');
+
 app.use((req, res, next) => {
     res.setHeader('ngrok-skip-browser-warning', 'true');
     next();
@@ -12,6 +17,92 @@ const CHAVE_MESTRA = "dedicacao2026*";
 
 app.use(express.json());
 app.use(express.static('public'));
+
+app.post('/gerar-pdfs', async (req, res) => {
+    try {
+        const dados = JSON.parse(fs.readFileSync('ingressos.json', 'utf8'));
+        const pastaPDFs = path.join(__dirname, 'public', 'convites_pdf');
+        if (!fs.existsSync(pastaPDFs)) fs.mkdirSync(pastaPDFs, { recursive: true });
+
+        const logoPath = path.join(__dirname, 'logo-evento.png'); 
+
+        for (const ingresso of dados) {
+            // 1. FORMATO 9:16 (360x640 pts)
+            const doc = new PDFDocument({
+                size: [360, 640], 
+                margin: 0
+            });
+
+            const stream = fs.createWriteStream(path.join(pastaPDFs, `convite_${ingresso.id+" - "+ingresso.nome}.pdf`));
+            doc.pipe(stream);
+
+            // --- DESIGN VERTICAL 9:16 ---
+
+            // Fundo Branco total
+            doc.rect(0, 0, 360, 640).fill('#ffffff');
+
+            // FAIXA SUPERIOR
+            doc.rect(0, 0, 360, 40).fill('#f8f8f8');
+            doc.fillColor('#777777').fontSize(9).font('Helvetica').text("DEDICAÇÃO DO SALÃO DO REINO", 0, 15, { align: 'center' });
+
+            // LOGÓTIPO (Centralizado no topo)
+            if (fs.existsSync(logoPath)) {
+                doc.image(logoPath, 155, 70, { width: 50 }); // X: 180 - (50/2) = 155
+            }
+
+            // NOME DO CONVIDADO (Grande e Centralizado)
+            doc.fillColor('#000000')
+               .fontSize(22)
+               .font('Helvetica-Bold')
+               .text(ingresso.nome.toUpperCase(), 20, 160, { align: 'center' });
+
+            // ID
+            doc.fillColor('#888888')
+               .fontSize(12)
+               .font('Helvetica')
+               .text(`ID: ${ingresso.id}`, { align: 'center' });
+
+            // LINHA DIVISÓRIA
+            doc.strokeColor('#eeeeee').lineWidth(1)
+               .moveTo(60, 240).lineTo(300, 240).stroke();
+
+            // INFORMAÇÕES (Data e Local)
+            doc.fillColor('#444444')
+               .fontSize(14)
+               .font('Helvetica')
+               .text("19 de abril de 2026", 0, 270, { align: 'center' });
+            
+            doc.fontSize(12)
+               .text("08h30", { align: 'center' });
+
+            doc.moveDown(1.5);
+            doc.fontSize(11)
+               .fillColor('#666666')
+               .text("Rua Leopolodo Rodrigues, 67\nCentro, Estância, SE", { align: 'center', lineGap: 2 });
+
+            // QR CODE (Grande e bem visível no centro/baixo)
+            const urlValidacao = `${req.protocol}://${req.get('host')}/validar-auto.html?id=${ingresso.id}`;
+            const qrBuffer = await QRCode.toBuffer(urlValidacao, { margin: 1, width: 140 });
+            doc.image(qrBuffer, 110, 400, { width: 140 }); // X: 180 - (140/2) = 110
+
+            // TEXTO DE INSTRUÇÃO
+            doc.fillColor('#999999').fontSize(10)
+               .text("Apresente este QR Code na entrada", 0, 560, { align: 'center' });
+
+            // FAIXA INFERIOR (Rodapé)
+            doc.rect(0, 610, 360, 30).fill('#f8f8f8');
+            doc.fillColor('#aaaaaa').fontSize(8)
+               .text("CONVITE INDIVIDUAL E INTRANSFERÍVEL", 0, 620, { align: 'center' });
+
+            doc.end();
+        }
+
+        res.json({ mensagem: "PDFs 9:16 gerados com sucesso!" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ mensagem: "Erro ao gerar PDFs verticais." });
+    }
+});
 
 // Inicializa o JSON
 if (!fs.existsSync('ingressos.json')) fs.writeFileSync('ingressos.json', '[]');
